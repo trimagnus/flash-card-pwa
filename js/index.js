@@ -1,13 +1,15 @@
-//EXAMPLE DECKS AND USERS BELOW
+//EXAMPLE DECKS AND USERS//
 // let test_deck = {
 //   deckId: 0,
 //   title: "Test Deck 1",
 //   cards: [
-//     {q: "What Is the Airspeed Velocity of an Unladen Swallow?", a: "Roughly 11 meters per second, or 24 miles an hour."}
+//     {q: "What Is the Airspeed Velocity of an Unladen Swallow?", 
+//      a: "Roughly 11 meters per second, or 24 miles an hour."}
 //   ]
 // };
-//let user = {loginName: "Magnus", deckIds: 0, activeDeck: -1, decks: []};
-//EXAMPLE DECKS AND USERS ABOVE
+//let user = {loginName: "Magnus", deckIds: 0, 
+//            activeDeck: -1, decks: []};
+//EXAMPLE DECKS AND USERS//
 
 function makeCardElement(index, content, answer) {
   //Card Top Section
@@ -103,6 +105,7 @@ function makeCardElement(index, content, answer) {
       user.decks[user.activeDeck].cards[card._index].a = aText.value;
       saveUserData();
       curtain.remove();
+      //NOTE: This should only redraw the card, not the entire view!
       refreshView();
     };
     cancelButton.onclick = function(){
@@ -131,25 +134,17 @@ function makeCardElement(index, content, answer) {
       user.decks[user.activeDeck].cards.splice(card._index, 1);
       saveUserData();
       curtain.remove();
+      //NOTE: This should only remove the specific card, not redraw the enitre view!
       refreshView();
     }
   };
   return card;
 }
 
-function clearView() {
-  let main = document.getElementById("main");
-  main.innerHTML = "";
-}
-
-//CHOOSE AND DISPLAY DECK
+//BROWSE CARDS VIEW / Main View?//
 function displayBrowseView() {
-  clearView();
-  let wrapper = document.createElement("div");
-  wrapper.setAttribute("class", "wrapper");
-  let cardContainer = document.createElement("div");
-  cardContainer.setAttribute("class", "cards");
-
+  document.getElementById("main").innerHTML = `<div class="wrapper"><div class="cards"></div></div>`;
+  let cardContainer = document.getElementsByClassName("cards")[0];
   //LOAD DECK
   let text = "";
   if(user.activeDeck === -1){
@@ -158,6 +153,7 @@ function displayBrowseView() {
                                 <p>Click on New Deck above to get started!</p>
                                </div>`;
   } else {
+    //Reference to the user! Needs to be managed by another class.
     let deck = user.decks[user.activeDeck];
     if(deck.cards.length === 0) {
       cardContainer.innerHTML = `<div class='wrapper centered-text'>
@@ -170,53 +166,52 @@ function displayBrowseView() {
       }
     }
   }
-  wrapper.appendChild(cardContainer);
-  document.getElementById("main").appendChild(wrapper);
 }
 
-//NEW DECK
+//NEW DECK VIEW//
 function displayNewView() {
-  clearView();
-  let main = document.getElementById("main");
-  main.innerHTML = `<div class='wrapper centered-text'>
+  //New Deck View Template
+  document.getElementById("main").innerHTML = `
+                    <div class='wrapper centered-text'>
                       <h2>Create New Deck</h2>
                       <input id="new-input" class="new-deck-input" type="text" placeholder="Give it a name...">
                       <button id="new-button" class="new-deck-button">Create</button>
                     </div>`;
-  document.getElementById("new-button").onclick = function() {
+  //New Deck Button
+  document.getElementById("new-button").onclick = newDeckEvent;
+  //New Deck View -> New Deck Event
+  function newDeckEvent(){
     let inp = document.getElementById("new-input");
     if(inp.value === ""){
       inp.focus();
     } else {
       createNewDeck(user, inp.value);
-      inp.value = "";
-      saveUserData();
+      //NOTE: This should update the deck selector and redraw it, not the entire view!
       refreshView();
     }
-  };
-}
-
-function createNewDeck(user, title) {
-  let id = user.deckIds++;
-  let deck = {
-    deckId: id,
-    title: title,
-    cards: []
-  };
-  user.decks.push(deck);
-  user.activeDeck = user.decks.length - 1;
-}
-
-//EDIT DECK
-function displayEditView() {
-  clearView();
-  
-  if(user.activeDeck === -1) {
-    return;
   }
-  
-  let main = document.getElementById("main");
-  main.innerHTML = `<div class='wrapper centered-text'>
+  //New Deck Event -> Create New Deck
+  //Makes a new deck and adds it to the current user
+  //SHOULD BE IN A DATA MANAGER
+  function createNewDeck(user, title) {
+    let id = user.deckIds++;
+    let deck = {
+      deckId: id,
+      title: title,
+      cards: []
+    };
+    user.decks.push(deck);
+    user.activeDeck = user.decks.length - 1;
+    saveUserData();
+  }
+}
+
+//EDIT DECK View//
+function displayEditView() {
+  if(user.activeDeck === -1) document.getElementById("newButton").click();
+
+  //Edit Deck View Template
+  document.getElementById("main").innerHTML = `<div class='wrapper centered-text'>
                       <div class="deck-editor">
                         <h3>Edit Deck Name</h3>
                         <input id="edit-deck-input" class="edit-deck-input" type="text">
@@ -228,30 +223,32 @@ function displayEditView() {
                       </div>
                     </div>`;
   
+  //Edit Deck Name component
   let inp = document.getElementById("edit-deck-input");
   inp.value = user.decks[user.activeDeck].title;
-  document.getElementById("edit-deck-button").onclick = function(e) {
-    e.preventDefault();
+  //Edit Deck Name Button + Event
+  document.getElementById("edit-deck-button").onclick = function() {
     updateDeckName(inp.value);
     saveUserData();
   }
-  
-  document.getElementById("add-card-button").onclick = function(e){
-    let curtain = document.createElement("div");
-    document.getElementsByTagName("body")[0].appendChild(curtain);
-    curtain.setAttribute("class", "curtain");
-    curtain.innerHTML = `<div class="wrapper centered-text overlay card-creator">
-                           <h2>Create a card:</h2>
-                           <hr>
-                           <p>Question:</p>
-                           <textarea rows="4" id="card-creator-question"></textarea>
-                           <p>Answer:</p>
-                           <textarea rows="4" id="card-creator-answer"></textarea>
-                           <div class="card-creator-buttons-area">
-                             <button id="card-creator-submit">Create</button>
-                             <button id="card-creator-cancel">Cancel</button>
-                           </div>
-                         </div>`;
+  //Add Card Button
+  document.getElementById("add-card-button").onclick = addCardOverlay;
+  //Delete Deck Button
+  document.getElementById("delete-deck-button").onclick = deleteDeckOverlay;
+
+  //Edit Deck View -> Add Card Button Event
+  function addCardOverlay() {
+    let [curtain, overlay] = makeOverlay("wrapper centered-text overlay card-creator");
+    overlay.innerHTML = `<h2>Create a card:</h2>
+                        <hr>
+                        <p>Question:</p>
+                        <textarea rows="4" id="card-creator-question"></textarea>
+                        <p>Answer:</p>
+                        <textarea rows="4" id="card-creator-answer"></textarea>
+                        <div class="card-creator-buttons-area">
+                          <button id="card-creator-submit">Create</button>
+                          <button id="card-creator-cancel">Cancel</button>
+                        </div>`;
     document.getElementById("card-creator-submit").onclick = function(){
       let question = document.getElementById("card-creator-question");
       let answer = document.getElementById("card-creator-answer");
@@ -269,71 +266,116 @@ function displayEditView() {
       curtain.remove();
       displayEditView();
     };
-    
-    curtain.onclick = function(e){
-      if(e.target === curtain){
-        curtain.remove();
-      }
-    };
     document.getElementById("card-creator-cancel").onclick = function(){
       curtain.remove();
-    };
-  };
-  let deleteDeckButton = document.getElementById("delete-deck-button");
-  deleteDeckButton.onclick = function(){
-    //ASK USER IF SURE!!!!!!!!!
-    let curtain = document.createElement("div");
-    document.getElementsByTagName("body")[0].appendChild(curtain);
-    curtain.setAttribute("class", "curtain dialogue-overlay");
-
-    curtain.innerHTML = `<div class="wrapper centered-text overlay">
-                           <h2>Delete this deck???</h2>
-                           <div class="dialogue-buttons">
-                             <button id="prompt-delete-deck">Yes</button>
-                             <button id="prompt-save-deck">No</button
-                           </div>
-                         </div>`;
-    let yesButton = document.getElementById("prompt-delete-deck");
-    let noButton = document.getElementById("prompt-save-deck");
-    noButton.onclick = function() {
-      curtain.remove();
-    };
-    yesButton.onclick = function() {
-      user.decks.splice(user.activeDeck, 1);
-      if(user.decks.length > 0){
-        user.activeDeck = 0;
-      } else {
-        user.activeDeck = -1;
-      }
-      saveUserData();
-      curtain.remove();
-      refreshView();
     }
-  };
+    function deleteDeckOverlay() {
+      let [curtain, overlay] = makeOverlay("wrapper centered-text overlay", "dialogue-overlay", true);
+      overlay.innerHTML = `<h2>Delete this deck???</h2>
+                          <div class="dialogue-buttons">
+                            <button id="prompt-delete-deck">Yes</button>
+                            <button id="prompt-save-deck">No</button
+                          </div>`;
+      let yesButton = document.getElementById("prompt-delete-deck");
+      let noButton = document.getElementById("prompt-save-deck");
+      noButton.onclick = function() {
+        curtain.remove();
+      };
+      yesButton.onclick = function() {
+        user.decks.splice(user.activeDeck, 1);
+        if(user.decks.length > 0){
+          user.activeDeck = 0;
+        } else {
+          user.activeDeck = -1;
+        }
+        saveUserData();
+        curtain.remove();
+        //NOTE: setDeckSelector should go here (pull out of refreshView function)
+        refreshView();
+      };
+    }
+  }
+  //Edit Deck View -> Update Deck Name
+  function updateDeckName(value) {
+    user.decks[user.activeDeck].title = value;
+    setDeckSelector();
+  }
 }
 
-function updateDeckName(value) {
-  user.decks[user.activeDeck].title = value;
-  setDeckSelector();
-}
-
-//DECK SELECTOR
+//DECK SELECTOR//
 function setDeckSelector(){
   let title = user.activeDeck !== -1 ? user.decks[user.activeDeck].title : "--no decks--";
   document.getElementById("deck-selector").innerHTML = `<p>Current deck:</p>
                                                         <p>${title}</p>`;
 }
+function deckSelector() {
+  if(user.activeDeck === -1){
+    return;
+  }
+  let [curtain, overlay] = makeOverlay("wrapper centered-text overlay")
+  overlay.innerHTML = `<h2>Choose a deck:</h2>
+                       <hr>
+                       <ul class="decklist" id="decklist">
+                       </ul>`
+  let ul = document.getElementById("decklist");
+  for(let deck of user.decks) {
+    let li = document.createElement("li");
+    li._id = deck.deckId;
+    li.innerHTML = deck.title;
+  
+    li.onclick = function(e){
+      let id = user.decks.map(d => d.deckId).indexOf(e.target._id);
+      user.activeDeck = id;
+      saveUserData();
+      //NOTE: Ideally would only redraw the deck selector
+      //      redraw card browser if in that view
+      refreshView();
+    };
+    
+    ul.appendChild(li);
+  }
+}
+
+//USER MENU//
+function userMenu() {
+  let [curtain, wrapper] = makeOverlay("wrapper centered-text overlay");
+  wrapper.innerHTML = `<form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post">
+                         <h3>Import User Data</h3>
+                         <input type='file' id='fileinput'>
+                         <input type='button' id='btnLoad' value='Load' onclick='loadFile();'>
+                       </form>
+                       <hr>
+                       <h3 class="export-header">Export user data?</h3>
+                       <a href="javascript:void(0)" id="export-button"><button>Export</button></a>
+                       <hr>
+                       <h3>Clear local data?</h3>
+                       <p class="warning">Warning: This deletes all user data stored on this browser!</p>
+                       <button id="clear-local-data-button">Clear local data</button>`;
+  let exportUserData = function() {
+    setTimeout("exportData(JSON.stringify(user), 'flash_cards.json', 'text/plain')");
+  }
+  //Need to call this here or the user will have to click twice for each download
+  exportUserData();
+  //
+  document.getElementById("export-button").onclick = exportUserData;
+  document.getElementById("clear-local-data-button").onclick = function() {
+    clearUserData();
+    refreshView();
+    curtain.remove();
+  }
+}
 
 //Naive implementation: Rework to keep track of current view and reload that
 function refreshView() {
+  //This should not be here; this functionality should be managed by a view manager
   setDeckSelector()
   document.getElementById("browseButton").click();
 }
 
+//User Related Functions
 function makeLocalUser() {
   return {loginName: "Log In", deckIds: 0, activeDeck: -1, decks: []};
 }
-
 function getUserData() {
   let user = JSON.parse(localStorage.getItem("activeUser"));
   if(!user) {
@@ -342,59 +384,13 @@ function getUserData() {
   document.getElementById("user").innerHTML = user.loginName;
   return user;
 }
-
 function saveUserData() {
   localStorage.setItem("activeUser", (JSON.stringify(user)));
 }
-
 function clearUserData() {
   localStorage.removeItem("activeUser");
   user = makeLocalUser();
   refreshView();
-}
-
-//Used in the export
-function exportData(text, name, type) {
-  var exportButton = document.getElementById("export-button");
-  var file = new Blob([text], {type: type});
-  exportButton.href = URL.createObjectURL(file);
-  exportButton.download = name;
-}
-
-//Import data
-//Adapted from https://stackoverflow.com/questions/7346563/loading-local-json-file/21446426#21446426
-function loadFile() {
-  var input, file, fr;
-
-  if (typeof window.FileReader !== 'function') {
-    alert("The file API isn't supported on this browser yet.");
-    return;
-  }
-
-  input = document.getElementById('fileinput');
-  if (!input) {
-    alert("Couldn't find the fileinput element.");
-  }
-  else if (!input.files) {
-    alert("This browser doesn't seem to support the `files` property of file inputs.");
-  }
-  else if (!input.files[0]) {
-    alert("Please select a file before clicking 'Load'");
-  }
-  else {
-    file = input.files[0];
-    fr = new FileReader();
-    fr.onload = receivedText;
-    fr.readAsText(file);
-  }
-
-  function receivedText(e) {
-    let lines = e.target.result;
-    user = JSON.parse(lines);
-    saveUserData();
-    refreshView();
-    document.getElementsByClassName("curtain")[0].remove();
-  }
 }
 
 //CHANGE VIEW FUNCTION
@@ -421,74 +417,63 @@ function activateView(e) {
   }
 }
 
-function deckSelector() {
-  if(user.activeDeck === -1){
-    return;
-  }
-  let curtain = document.createElement("div");
-  curtain.setAttribute("class", "curtain");
-  
-  curtain.onclick = function(e){
-    curtain.remove();
-  };
-  
-  curtain.innerHTML = `<div class="wrapper centered-text overlay">
-                         <h2>Choose a deck:</h2>
-                         <hr>
-                         <ul class="decklist" id="decklist">
-                           
-                         </ul>
-                       </div>`
+function makeOverlay(overlayClassAttributes, curtainAttributes="", lock=false) {
+  let curtain = document.createElement('div');
+  curtain.setAttribute("class", `curtain ${curtainAttributes}`);
+  curtain.setAttribute("id", "curtain");
+  curtain.innerHTML = `<div id="overlay" class="${overlayClassAttributes}"></div>`;
   document.getElementsByTagName("body")[0].appendChild(curtain);
-  
-  let ul = document.getElementById("decklist");
-  for(let deck of user.decks) {
-    let li = document.createElement("li");
-    li._id = deck.deckId;
-    li.innerHTML = deck.title;
-    
-    li.onclick = function(e){
-      let id = user.decks.map(d => d.deckId).indexOf(e.target._id);
-      user.activeDeck = id;
-      saveUserData();
-      refreshView();
+  if(!lock){
+    curtain.onclick = function(e){
+      if(e.target === curtain){
+        curtain.remove();
+      }
     };
-    
-    ul.appendChild(li);
   }
+  return [curtain, document.getElementById("overlay")];
 }
 
-function userMenu() {
-  let curtain = document.createElement("div");
-  document.getElementsByTagName("body")[0].appendChild(curtain);
-  curtain.setAttribute("class", "curtain");
-  curtain.innerHTML = `<div class="wrapper centered-text overlay">
-                         <form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post">
-                           <h3>Import User Data</h3>
-                           <input type='file' id='fileinput'>
-                           <input type='button' id='btnLoad' value='Load' onclick='loadFile();'>
-                         </form>
-                         <hr>
-                         <h3 class="export-header">Export user data?</h3>
-                         <a href="javascript:void(0)" id="export-button"><button>Export</button></a>
-                         <hr>
-                         <h3>Clear local data?</h3>
-                         <p class="warning">Warning: This deletes all user data stored on this browser!</p>
-                         <button id="clear-local-data-button">Clear local data</button>
-                       </div>`;
-  let exportUserData = function() {
-    setTimeout("exportData(JSON.stringify(user), 'flash_cards.json', 'text/plain')");
+//UTILITY FUNCTIONS
+//Used in the export
+function exportData(text, name, type) {
+  var exportButton = document.getElementById("export-button");
+  var file = new Blob([text], {type: type});
+  exportButton.href = URL.createObjectURL(file);
+  exportButton.download = name;
+}
+//Import data
+//Adapted from https://stackoverflow.com/questions/7346563/loading-local-json-file/21446426#21446426
+function loadFile() {
+  var input, file, fr;
+
+  if (typeof window.FileReader !== 'function') {
+    alert("The file API isn't supported on this browser yet.");
+    return;
   }
-  //Need to call this here or the user will have to click twice for each download
-  exportUserData();
-  //
-  document.getElementById("export-button").onclick = exportUserData;
-  document.getElementById("clear-local-data-button").onclick = function() {
-    clearUserData();
+  input = document.getElementById('fileinput');
+  if (!input) {
+    alert("Couldn't find the fileinput element.");
+  }
+  else if (!input.files) {
+    alert("This browser doesn't seem to support the `files` property of file inputs.");
+  }
+  else if (!input.files[0]) {
+    alert("Please select a file before clicking 'Load'");
+  }
+  else {
+    file = input.files[0];
+    fr = new FileReader();
+    fr.onload = receivedText;
+    fr.readAsText(file);
+  }
+
+  function receivedText(e) {
+    let lines = e.target.result;
+    user = JSON.parse(lines);
+    saveUserData();
     refreshView();
-    curtain.remove();
+    document.getElementsByClassName("curtain")[0].remove();
   }
-  curtain.onclick = function(e) { if(e.target === curtain) {curtain.remove();} };
 }
 
 document.getElementById("user").onclick = userMenu;
